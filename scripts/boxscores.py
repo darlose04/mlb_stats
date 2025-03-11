@@ -6,7 +6,7 @@ import mysql.connector
 import os
 import sys
 from datetime import datetime
-from boxscore_data import boxscore_dict
+from scripts.testing.boxscore_data import boxscore_dict
 from tools import get_ids
 from boxscores_away_batting import away_team_batting
 from boxscores_home_batting import home_team_batting
