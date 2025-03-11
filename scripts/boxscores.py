@@ -45,6 +45,7 @@ exist_ids = []
 for id in cursor:
     exist_ids.append(id[0])
 
+# TODO: can probably get the current year without setting it manually. Not really necessary at this point though.
 game_ids = get_ids(cursor, 2025)
 print(game_ids)
 
