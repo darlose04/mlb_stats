@@ -6,7 +6,7 @@ import mysql.connector
 import os
 import sys
 from datetime import datetime
-from scripts.testing.boxscore_data import boxscore_dict
+# from scripts.testing.boxscore_data import boxscore_dict
 from tools import get_ids
 from boxscores_away_batting import away_team_batting
 from boxscores_home_batting import home_team_batting
@@ -15,9 +15,9 @@ from boxscores_home_p_and_f import home_team_pitching_and_fielding
 from player_batting import player_batting
 from player_pitching import player_pitching
 from player_fielding import player_fielding
-from game_1 import game_one
-from game_2 import game_two
-from game_3 import game_three
+# from game_1 import game_one
+# from game_2 import game_two
+# from game_3 import game_three
 
 # TODO: at some point will need to use the player link to get the bat and throw side of hitters and pitchers
 
@@ -26,6 +26,7 @@ load_dotenv()
 db_config = {
     "user": os.getenv("DB_USER"),
     "password": os.getenv("DB_PASSWD"),
+    "port": os.getenv("DB_PORT"),
     "host": os.getenv("DB_HOST"),
     "database": os.getenv("DB"),
 }
