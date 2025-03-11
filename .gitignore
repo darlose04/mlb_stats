@@ -12,5 +12,6 @@ sql/*
 sql/.DS_Store
 mlb_backup.sql
 updateDB.sh
+*.log
 
 
