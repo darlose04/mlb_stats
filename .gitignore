@@ -1,0 +1,16 @@
+myenv/
+bin/
+include/
+lib/
+lib64
+pyvenv.cfg
+schema.txt
+.env
+__pycache__/
+sql/*
+.DS_Store
+sql/.DS_Store
+mlb_backup.sql
+scripts/testing
+
+
