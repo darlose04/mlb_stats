@@ -59,8 +59,8 @@ schedule = statsapi.get(
     },
 )
 
-print("Schedule Keys", schedule.keys())
-print("Total Games", schedule["totalGames"])
+# print("Schedule Keys", schedule.keys())
+# print("Total Games", schedule["totalGames"])
 
 schedule_dates = schedule["dates"]
 # print(json.dumps(schedule_dates, indent=4))
@@ -72,8 +72,7 @@ for date in schedule_dates:
 
     filtered_games = list(filter(lambda game: game["gameType"] == "S", games))
 
-    print(filtered_games)
-    # sys.exit()
+    # print(filtered_games)
     check_duplicate = 0
     for game in filtered_games:
         if game["status"]["detailedState"] == "Final":
