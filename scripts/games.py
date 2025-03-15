@@ -70,7 +70,7 @@ total_games = []
 for date in schedule_dates:
     games = date["games"]
 
-    filtered_games = list(filter(lambda game: game["gameType"] == "S", games))
+    filtered_games = list(filter(lambda game: game["gameType"] == "R", games))
 
     # print(filtered_games)
     check_duplicate = 0

@@ -59,7 +59,7 @@ difference = list(set(game_ids) - set(exist_ids))
 
 # game_ids = [745039, 745037, 745035]
 # game_boxscore = game_three()
-sys.exit()
+# sys.exit()
 for game_id in difference:
     # for game_id in game_ids:
     response = requests.get(f"https://statsapi.mlb.com/api/v1/game/{game_id}/boxscore")
