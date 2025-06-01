@@ -40,8 +40,9 @@ fantasy_db_config = {
 }
 
 cnx = mysql.connector.connect(**db_config)
+print("connected to mlb db")
 fcnx = mysql.connector.connect(**fantasy_db_config)
-print("connected to mlb and fantasy dbs")
+print("connected to fantasy db")
 cursor = cnx.cursor()
 fcursor = fcnx.cursor()
 
@@ -119,8 +120,10 @@ for game_id in difference:
     try:
         cursor.execute(htbs_insert, home_team_batting_stats)
         cnx.commit()
+        print("Committing first insert to MLB")
         fcursor.execute(htbs_insert, home_team_batting_stats)
         fcnx.commit()
+        print("Committing first insert to Fantasy")
     except mysql.connector.Error as err:
         print(f"Error in home team batting: {err}")
         cnx.rollback()
@@ -179,8 +182,10 @@ for game_id in difference:
     try:
         cursor.executemany(pf_insert, pf_stats)
         cnx.commit()
+        print("Committing last insert for MLB")
         fcursor.executemany(pf_insert, pf_stats)
         fcnx.commit()
+        print("Committing last insert for Fantasy")
     except mysql.connector.Error as err:
         print(f"Error in player fielding: {err}")
         cnx.rollback()
