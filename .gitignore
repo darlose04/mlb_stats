@@ -11,6 +11,7 @@ sql/*
 .DS_Store
 sql/.DS_Store
 mlb_backup.sql
+fantasy_backup.sql
 updateDB.sh
 *.log
 
