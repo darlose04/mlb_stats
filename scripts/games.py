@@ -18,10 +18,20 @@ db_config = {
     "database": os.getenv("DB"),
 }
 
+fantasy_db_config = {
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWD"),
+    "port": os.getenv("DB_PORT"),
+    "host": os.getenv("DB_HOST"),
+    "database": os.getenv("FANTASY_DB"),
+}
+
 
 cnx = mysql.connector.connect(**db_config)
-print("connected to db")
+fcnx = mysql.connector.connect(**fantasy_db_config)
+print("connected to mlb and fantasy dbs")
 cursor = cnx.cursor()
+fcursor = fcnx.cursor()
 
 add_games_to_db = (
     "INSERT INTO games "
@@ -122,12 +132,17 @@ for date in schedule_dates:
 try:
     cursor.executemany(add_games_to_db, total_games)
     cnx.commit()
+    fcursor.executemany(add_games_to_db, total_games)
+    fcnx.commit()
 except mysql.connector.Error as err:
     print(f"ERROR: {err}")
     cnx.rollback()
+    fcnx.rollback()
 finally:
     print("done with year insert")
 
 cursor.close()
+fcursor.close()
 cnx.close()
+fcnx.close()
 print("Games not added: ", games_not_added)
