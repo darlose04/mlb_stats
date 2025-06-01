@@ -2,7 +2,7 @@ def get_ids(cursor, season):
     # May want to break this down season by season instead of all at once
     # TODO: will want to pass in parameters for year and maybe team
     get_game_ids = (
-        f"select * from mlb.games where season = {season} order by game_date desc"
+        f"select id from mlb.games where season = {season} order by game_date desc"
     )
 
     cursor.execute(
