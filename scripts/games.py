@@ -24,8 +24,8 @@ add_games_to_db = (
 # probably just going to grab the entire year
 # then filter the results for regular season games
 
-# years = [2025]
-# year =
+# years = [2026]
+# year = 2010
 # while year < 2025:
 #     years.append(year)
 #     year += 1
@@ -48,6 +48,8 @@ schedule = statsapi.get(
         "sportId": 1,
         "startDate": f"{previous_day_string}",
         "endDate": f"{previous_day_string}",
+        # "startDate": f"03/01/{year}",
+        # "endDate": f"10/31/{year}",
     },
 )
 
