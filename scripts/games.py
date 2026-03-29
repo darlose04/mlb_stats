@@ -3,35 +3,17 @@
 import statsapi
 import json
 from dotenv import load_dotenv
-import mysql.connector
+import psycopg2
 import os
 from datetime import datetime, timedelta
 import sys
+from db import get_connection, dual_write
 
 load_dotenv()
 
-db_config = {
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWD"),
-    "port": os.getenv("DB_PORT"),
-    "host": os.getenv("DB_HOST"),
-    "database": os.getenv("DB"),
-}
-
-fantasy_db_config = {
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWD"),
-    "port": os.getenv("DB_PORT"),
-    "host": os.getenv("DB_HOST"),
-    "database": os.getenv("FANTASY_DB"),
-}
-
-
-cnx = mysql.connector.connect(**db_config)
-fcnx = mysql.connector.connect(**fantasy_db_config)
-print("connected to mlb and fantasy dbs")
+cnx = get_connection()
+print("connected to db")
 cursor = cnx.cursor()
-fcursor = fcnx.cursor()
 
 add_games_to_db = (
     "INSERT INTO games "
@@ -130,19 +112,12 @@ for date in schedule_dates:
                 total_games.append(game_insert)
 
 try:
-    cursor.executemany(add_games_to_db, total_games)
-    cnx.commit()
-    fcursor.executemany(add_games_to_db, total_games)
-    fcnx.commit()
-except mysql.connector.Error as err:
-    print(f"ERROR: {err}")
-    cnx.rollback()
-    fcnx.rollback()
+    dual_write(cnx, add_games_to_db, total_games, many=True)
+except psycopg2.Error:
+    pass  # dual_write already prints the error
 finally:
     print("done with year insert")
 
 cursor.close()
-fcursor.close()
 cnx.close()
-fcnx.close()
 print("Games not added: ", games_not_added)

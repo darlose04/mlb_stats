@@ -1,18 +1,13 @@
 import statsapi
 import json
 from dotenv import load_dotenv
-import mysql.connector
+import psycopg2
 import os
+from db import get_connection
 
 load_dotenv()
 
-db_config = {
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWD"),
-    "host": os.getenv("DB_HOST"),
-    "database": os.getenv("DB"),
-}
-cnx = mysql.connector.connect(**db_config)
+cnx = get_connection()
 print("connected to db")
 cursor = cnx.cursor()
 
@@ -59,9 +54,9 @@ for team in teams:
 try:
     cursor.executemany(add_teams_to_db, team_data)
     cnx.commit()
-    print(f"Inserted {cursor.rowcount} row(s) with ID: {cursor.lastrowid}")
+    print(f"Inserted {cursor.rowcount} row(s)")
 
-except mysql.connector.Error as err:
+except psycopg2.Error as err:
     print(f"ERROR: {err}")
     cnx.rollback()
 

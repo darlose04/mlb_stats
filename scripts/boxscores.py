@@ -2,7 +2,7 @@ import statsapi
 import json
 import requests
 from dotenv import load_dotenv
-import mysql.connector
+import psycopg2
 import os
 import sys
 from datetime import datetime
@@ -15,6 +15,7 @@ from boxscores_home_p_and_f import home_team_pitching_and_fielding
 from player_batting import player_batting
 from player_pitching import player_pitching
 from player_fielding import player_fielding
+from db import get_connection, dual_write
 # from game_1 import game_one
 # from game_2 import game_two
 # from game_3 import game_three
@@ -23,30 +24,11 @@ from player_fielding import player_fielding
 
 load_dotenv()
 
-db_config = {
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWD"),
-    "port": os.getenv("DB_PORT"),
-    "host": os.getenv("DB_HOST"),
-    "database": os.getenv("DB"),
-}
-
-fantasy_db_config = {
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWD"),
-    "port": os.getenv("DB_PORT"),
-    "host": os.getenv("DB_HOST"),
-    "database": os.getenv("FANTASY_DB"),
-}
-
-cnx = mysql.connector.connect(**db_config)
-print("connected to mlb db")
-fcnx = mysql.connector.connect(**fantasy_db_config)
-print("connected to fantasy db")
+cnx = get_connection()
+print("connected to db")
 cursor = cnx.cursor()
-fcursor = fcnx.cursor()
 
-get_existing_ids = "select distinct game_id from mlb.team_boxscores_home_batting"
+get_existing_ids = "select distinct game_id from team_boxscores_home_batting"
 
 cursor.execute(
     get_existing_ids,
@@ -118,82 +100,30 @@ for game_id in difference:
     # maybe create a custom unique id and check for that
     # like game_id + player_id
     try:
-        cursor.execute(htbs_insert, home_team_batting_stats)
-        cnx.commit()
-        print("Committing first insert to MLB")
-        fcursor.execute(htbs_insert, home_team_batting_stats)
-        fcnx.commit()
-        print("Committing first insert to Fantasy")
-    except mysql.connector.Error as err:
-        print(f"Error in home team batting: {err}")
-        cnx.rollback()
-        fcnx.rollback()
+        dual_write(cnx, htbs_insert, home_team_batting_stats)
+        print("Committed home team batting")
 
-    try:
-        cursor.execute(atbs_insert, away_team_batting_stats)
-        cnx.commit()
-        fcursor.execute(atbs_insert, away_team_batting_stats)
-        fcnx.commit()
-    except mysql.connector.Error as err:
-        print(f"Error away team batting: {err}")
-        cnx.rollback()
-        fcnx.rollback()
+        dual_write(cnx, atbs_insert, away_team_batting_stats)
+        print("Committed away team batting")
 
-    try:
-        cursor.execute(atpfs_insert, away_team_p_and_f_stats)
-        cnx.commit()
-        fcursor.execute(atpfs_insert, away_team_p_and_f_stats)
-        fcnx.commit()
-    except mysql.connector.Error as err:
-        print(f"Error in away team pitching/fielding: {err}")
-        cnx.rollback()
-        fcnx.rollback()
+        dual_write(cnx, atpfs_insert, away_team_p_and_f_stats)
+        print("Committed away team pitching/fielding")
 
-    try:
-        cursor.execute(htpfs_insert, home_team_p_and_f_stats)
-        cnx.commit()
-        fcursor.execute(htpfs_insert, home_team_p_and_f_stats)
-        fcnx.commit()
-    except mysql.connector.Error as err:
-        print(f"Error in home team pitching/fielding: {err}")
-        cnx.rollback()
-        fcnx.rollback()
+        dual_write(cnx, htpfs_insert, home_team_p_and_f_stats)
+        print("Committed home team pitching/fielding")
 
-    try:
-        cursor.executemany(pb_insert, pb_stats)
-        cnx.commit()
-        fcursor.executemany(pb_insert, pb_stats)
-        fcnx.commit()
-    except mysql.connector.Error as err:
-        print(f"Error in player batting: {err}")
-        cnx.rollback()
-        fcnx.rollback()
+        dual_write(cnx, pb_insert, pb_stats, many=True)
+        print("Committed player batting")
 
-    try:
-        cursor.executemany(pp_insert, pp_stats)
-        cnx.commit()
-        fcursor.executemany(pp_insert, pp_stats)
-        fcnx.commit()
-    except mysql.connector.Error as err:
-        print(f"Error in player pitching: {err}")
-        cnx.rollback()
-        fcnx.rollback()
+        dual_write(cnx, pp_insert, pp_stats, many=True)
+        print("Committed player pitching")
 
-    try:
-        cursor.executemany(pf_insert, pf_stats)
-        cnx.commit()
-        print("Committing last insert for MLB")
-        fcursor.executemany(pf_insert, pf_stats)
-        fcnx.commit()
-        print("Committing last insert for Fantasy")
-    except mysql.connector.Error as err:
-        print(f"Error in player fielding: {err}")
-        cnx.rollback()
-        fcnx.rollback()
+        dual_write(cnx, pf_insert, pf_stats, many=True)
+        print("Committed player fielding")
+    except psycopg2.Error:
+        print(f"Error processing game {game_id}, skipping remaining inserts for this game")
     finally:
         print("adding stats to db")
 
 cursor.close()
-fcursor.close()
 cnx.close()
-fcnx.close()
