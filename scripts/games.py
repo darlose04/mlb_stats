@@ -24,7 +24,7 @@ add_games_to_db = (
 # probably just going to grab the entire year
 # then filter the results for regular season games
 
-years = [2026]
+# years = [2026]
 # year = 1995
 # while year < 2010:
 #     years.append(year)
@@ -36,93 +36,89 @@ games_not_added = 0
 # TODO: Will need to get the current date to use for the startDate and endDate
 # will need to run the script every night - maybe get the previous day of data and run the script early in the morning
 
-# current_date = datetime.now()
-# previous_day = current_date - timedelta(days=1)
-# previous_day_string = previous_day.strftime("%m/%d/%Y")
-# print(previous_day_string)
+current_date = datetime.now()
+previous_day = current_date - timedelta(days=1)
+previous_day_string = previous_day.strftime("%m/%d/%Y")
+print("Previous Day: ", previous_day_string)
 
-print("Years being added: ", years)
-for year in years:
-    print(f"Adding games for {year}")
-    schedule = statsapi.get(
-        "schedule",
-        {
-            "sportId": 1,
-            # "startDate": f"{previous_day_string}",
-            # "endDate": f"{previous_day_string}",
-            "startDate": f"03/10/{year}",
-            "endDate": f"10/31/{year}",
-        },
-    )
+# for year in years:
+schedule = statsapi.get(
+    "schedule",
+    {
+        "sportId": 1,
+        "startDate": f"{previous_day_string}",
+        "endDate": f"{previous_day_string}",
+        # "startDate": f"03/10/{year}",
+        # "endDate": f"10/31/{year}",
+    },
+)
 
-    # print("Schedule Keys", schedule.keys())
-    # print("Total Games", schedule["totalGames"])
+# print("Schedule Keys", schedule.keys())
+# print("Total Games", schedule["totalGames"])
 
-    schedule_dates = schedule["dates"]
-    # print(json.dumps(schedule_dates, indent=4))
+schedule_dates = schedule["dates"]
+# print(json.dumps(schedule_dates, indent=4))
 
-    total_games = []
+total_games = []
 
-    for date in schedule_dates:
-        games = date["games"]
+for date in schedule_dates:
+    games = date["games"]
 
-        filtered_games = list(filter(lambda game: game["gameType"] == "R", games))
+    filtered_games = list(filter(lambda game: game["gameType"] == "R", games))
 
-        # print(filtered_games)
-        check_duplicate = 0
-        for game in filtered_games:
-            if game["status"]["detailedState"] == "Final":
+    # print(filtered_games)
+    check_duplicate = 0
+    for game in filtered_games:
+        if game["status"]["detailedState"] == "Final":
 
-                # print("================")
-                # print(json.dumps(game, indent=4))
-                # print("================")
-                if "resumeDate" in game:
-                    print("resume date in game, continuuing")
-                    continue
-                elif "score" not in game["teams"]["away"]:
-                    games_not_added += 1
-                    print(json.dumps(game, indent=4))
-                    continue
-                else:
-                    game_date = datetime.strptime(
-                        game["gameDate"], "%Y-%m-%dT%H:%M:%SZ"
-                    )
-                    official_date = datetime.strptime(game["officialDate"], "%Y-%m-%d")
+            # print("================")
+            # print(json.dumps(game, indent=4))
+            # print("================")
+            if "resumeDate" in game:
+                print("resume date in game, continuuing")
+                continue
+            elif "score" not in game["teams"]["away"]:
+                games_not_added += 1
+                print(json.dumps(game, indent=4))
+                continue
+            else:
+                game_date = datetime.strptime(game["gameDate"], "%Y-%m-%dT%H:%M:%SZ")
+                official_date = datetime.strptime(game["officialDate"], "%Y-%m-%d")
 
-                    game_insert = (
-                        game["gamePk"],
-                        game["gameGuid"],
-                        game["link"],
-                        game["gameType"],
-                        game["season"],
-                        game_date,
-                        official_date,
-                        game["teams"]["away"]["team"]["name"],
-                        game["teams"]["away"]["team"]["id"],
-                        game["teams"]["away"]["score"],
-                        game["teams"]["away"]["leagueRecord"]["wins"],
-                        game["teams"]["away"]["leagueRecord"]["losses"],
-                        game["teams"]["away"]["seriesNumber"],
-                        game["teams"]["home"]["team"]["name"],
-                        game["teams"]["home"]["team"]["id"],
-                        game["teams"]["home"]["score"],
-                        game["teams"]["home"]["leagueRecord"]["wins"],
-                        game["teams"]["home"]["leagueRecord"]["losses"],
-                        game["teams"]["home"]["seriesNumber"],
-                        game["gamesInSeries"],
-                        game["seriesGameNumber"],
-                        game["venue"]["name"],
-                        game["venue"]["id"],
-                    )
+                game_insert = (
+                    game["gamePk"],
+                    game["gameGuid"],
+                    game["link"],
+                    game["gameType"],
+                    game["season"],
+                    game_date,
+                    official_date,
+                    game["teams"]["away"]["team"]["name"],
+                    game["teams"]["away"]["team"]["id"],
+                    game["teams"]["away"]["score"],
+                    game["teams"]["away"]["leagueRecord"]["wins"],
+                    game["teams"]["away"]["leagueRecord"]["losses"],
+                    game["teams"]["away"]["seriesNumber"],
+                    game["teams"]["home"]["team"]["name"],
+                    game["teams"]["home"]["team"]["id"],
+                    game["teams"]["home"]["score"],
+                    game["teams"]["home"]["leagueRecord"]["wins"],
+                    game["teams"]["home"]["leagueRecord"]["losses"],
+                    game["teams"]["home"]["seriesNumber"],
+                    game["gamesInSeries"],
+                    game["seriesGameNumber"],
+                    game["venue"]["name"],
+                    game["venue"]["id"],
+                )
 
-                    total_games.append(game_insert)
+                total_games.append(game_insert)
 
-    try:
-        dual_write(cnx, add_games_to_db, total_games, many=True)
-    except psycopg2.Error:
-        pass  # dual_write already prints the error
-    finally:
-        print("done with year insert")
+try:
+    dual_write(cnx, add_games_to_db, total_games, many=True)
+except psycopg2.Error:
+    pass  # dual_write already prints the error
+finally:
+    print("done with year insert")
 
 cursor.close()
 cnx.close()
