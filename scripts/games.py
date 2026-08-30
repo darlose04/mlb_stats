@@ -18,20 +18,29 @@ cursor = cnx.cursor()
 add_games_to_db = (
     "INSERT INTO games "
     "(id, game_guid, feed_link, game_type, season, game_date, official_date, away_team, away_team_id, away_team_score, away_team_total_wins, away_team_total_losses, away_team_series_number, home_team, home_team_id, home_team_score, home_team_total_wins, home_team_total_losses, home_team_series_number, number_of_games_in_series, series_game_number, venue_name, venue_id) "
-    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
+    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+    "ON CONFLICT (id) DO NOTHING"
 )
 
 # probably just going to grab the entire year
 # then filter the results for regular season games
 
 # years = [2026]
-# year = 1995
+year = 2026
 # while year < 2010:
 #     years.append(year)
 #     year += 1
 
 # checking number of games that don't get added
 games_not_added = 0
+# games skipped because they already exist in the games table
+games_already_exist = 0
+
+# grab every game id already in the db so we can skip duplicates
+# (lets the script be rerun over a full season without hitting games_pkey)
+cursor.execute("SELECT id FROM games")
+existing_game_ids = {row[0] for row in cursor.fetchall()}
+print("Existing games in db: ", len(existing_game_ids))
 
 # TODO: Will need to get the current date to use for the startDate and endDate
 # will need to run the script every night - maybe get the previous day of data and run the script early in the morning
@@ -46,10 +55,10 @@ schedule = statsapi.get(
     "schedule",
     {
         "sportId": 1,
-        "startDate": f"{previous_day_string}",
-        "endDate": f"{previous_day_string}",
-        # "startDate": f"03/10/{year}",
-        # "endDate": f"10/31/{year}",
+        # "startDate": f"{previous_day_string}",
+        # "endDate": f"{previous_day_string}",
+        "startDate": f"02/10/{year}",
+        "endDate": f"10/31/{year}",
     },
 )
 
@@ -74,7 +83,10 @@ for date in schedule_dates:
             # print("================")
             # print(json.dumps(game, indent=4))
             # print("================")
-            if "resumeDate" in game:
+            if game["gamePk"] in existing_game_ids:
+                games_already_exist += 1
+                continue
+            elif "resumeDate" in game:
                 print("resume date in game, continuuing")
                 continue
             elif "score" not in game["teams"]["away"]:
@@ -113,13 +125,18 @@ for date in schedule_dates:
 
                 total_games.append(game_insert)
 
-try:
-    dual_write(cnx, add_games_to_db, total_games, many=True)
-except psycopg2.Error:
-    pass  # dual_write already prints the error
-finally:
-    print("done with year insert")
+if total_games:
+    try:
+        dual_write(cnx, add_games_to_db, total_games, many=True)
+    except psycopg2.Error:
+        pass  # dual_write already prints the error
+    finally:
+        print("done with year insert")
+else:
+    print("no new games to insert")
 
 cursor.close()
 cnx.close()
+print("Games inserted: ", len(total_games))
+print("Games skipped (already in db): ", games_already_exist)
 print("Games not added: ", games_not_added)
