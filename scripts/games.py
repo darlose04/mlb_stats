@@ -125,6 +125,8 @@ for date in schedule_dates:
                 )
 
                 total_games.append(game_insert)
+        elif game["status"]["detailedState"] == "Scheduled":
+            print("scheduled games: ", json.dumps(game, indent=4))
 
 if total_games:
     try:
