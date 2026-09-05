@@ -55,13 +55,14 @@ schedule = statsapi.get(
     "schedule",
     {
         "sportId": 1,
-        # "startDate": f"{previous_day_string}",
-        # "endDate": f"{previous_day_string}",
-        "startDate": f"02/10/{year}",
-        "endDate": f"10/31/{year}",
+        "startDate": f"{previous_day_string}",
+        "endDate": f"{previous_day_string}",
+        "startDate": f"03/01/{year}",
+        "endDate": f"10/10/{year}",
     },
 )
 
+# print("Schedule: ", json.dumps(schedule, indent=4))
 # print("Schedule Keys", schedule.keys())
 # print("Total Games", schedule["totalGames"])
 
@@ -87,7 +88,7 @@ for date in schedule_dates:
                 games_already_exist += 1
                 continue
             elif "resumeDate" in game:
-                print("resume date in game, continuuing")
+                print("resume date in game, continuing")
                 continue
             elif "score" not in game["teams"]["away"]:
                 games_not_added += 1
