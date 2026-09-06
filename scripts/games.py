@@ -22,7 +22,12 @@ add_games_to_db = (
     "ON CONFLICT (id) DO NOTHING"
 )
 
-add_games_to_scheduled = ""
+add_games_to_scheduled = (
+    "INSERT INTO scheduled_games "
+    "(id, game_guid, feed_link, game_type, season, game_date, official_date, away_team, away_team_id,away_team_total_wins, away_team_total_losses, away_team_series_number, home_team, home_team_id, home_team_total_wins, home_team_total_losses, home_team_series_number, number_of_games_in_series, series_game_number, venue_name, venue_id) "
+    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+    "ON CONFLICT (id) DO NOTHING"
+)
 
 # probably just going to grab the entire year
 # then filter the results for regular season games
@@ -161,6 +166,16 @@ for date in schedule_dates:
 if total_games:
     try:
         dual_write(cnx, add_games_to_db, total_games, many=True)
+    except psycopg2.Error:
+        pass  # dual_write already prints the error
+    finally:
+        print("done with year insert")
+else:
+    print("no new games to insert")
+
+if scheduled_games:
+    try:
+        dual_write(cnx, add_games_to_scheduled, scheduled_games, many=True)
     except psycopg2.Error:
         pass  # dual_write already prints the error
     finally:
