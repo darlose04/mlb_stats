@@ -134,7 +134,7 @@ for date in schedule_dates:
 
                 total_games.append(game_insert)
         elif game["status"]["detailedState"] == "Scheduled":
-            print("scheduled games: ", json.dumps(game, indent=4))
+            # print("scheduled games: ", json.dumps(game, indent=4))
             game_date = datetime.strptime(game["gameDate"], "%Y-%m-%dT%H:%M:%SZ")
             official_date = datetime.strptime(game["officialDate"], "%Y-%m-%d")
             schedule_insert = (
@@ -173,6 +173,8 @@ if total_games:
 else:
     print("no new games to insert")
 
+cursor.execute("TRUNCATE TABLE scheduled_games, fantasy.scheduled_games")
+cnx.commit()
 if scheduled_games:
     try:
         dual_write(cnx, add_games_to_scheduled, scheduled_games, many=True)
