@@ -22,6 +22,8 @@ add_games_to_db = (
     "ON CONFLICT (id) DO NOTHING"
 )
 
+add_games_to_scheduled = ""
+
 # probably just going to grab the entire year
 # then filter the results for regular season games
 
@@ -70,6 +72,7 @@ schedule_dates = schedule["dates"]
 # print(json.dumps(schedule_dates, indent=4))
 
 total_games = []
+scheduled_games = []
 
 for date in schedule_dates:
     games = date["games"]
@@ -127,6 +130,33 @@ for date in schedule_dates:
                 total_games.append(game_insert)
         elif game["status"]["detailedState"] == "Scheduled":
             print("scheduled games: ", json.dumps(game, indent=4))
+            game_date = datetime.strptime(game["gameDate"], "%Y-%m-%dT%H:%M:%SZ")
+            official_date = datetime.strptime(game["officialDate"], "%Y-%m-%d")
+            schedule_insert = (
+                game["gamePk"],
+                game["gameGuid"],
+                game["link"],
+                game["gameType"],
+                game["season"],
+                game_date,
+                official_date,
+                game["teams"]["away"]["team"]["name"],
+                game["teams"]["away"]["team"]["id"],
+                game["teams"]["away"]["leagueRecord"]["wins"],
+                game["teams"]["away"]["leagueRecord"]["losses"],
+                game["teams"]["away"]["seriesNumber"],
+                game["teams"]["home"]["team"]["name"],
+                game["teams"]["home"]["team"]["id"],
+                game["teams"]["home"]["leagueRecord"]["wins"],
+                game["teams"]["home"]["leagueRecord"]["losses"],
+                game["teams"]["home"]["seriesNumber"],
+                game["gamesInSeries"],
+                game["seriesGameNumber"],
+                game["venue"]["name"],
+                game["venue"]["id"],
+            )
+
+            scheduled_games.append(schedule_insert)
 
 if total_games:
     try:
@@ -137,6 +167,7 @@ if total_games:
         print("done with year insert")
 else:
     print("no new games to insert")
+
 
 cursor.close()
 cnx.close()
