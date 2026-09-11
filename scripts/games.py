@@ -24,8 +24,8 @@ add_games_to_db = (
 
 add_games_to_scheduled = (
     "INSERT INTO scheduled_games "
-    "(id, game_guid, feed_link, game_type, season, game_date, official_date, away_team, away_team_id,away_team_total_wins, away_team_total_losses, away_team_series_number, home_team, home_team_id, home_team_total_wins, home_team_total_losses, home_team_series_number, number_of_games_in_series, series_game_number, venue_name, venue_id) "
-    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+    "(id, game_guid, feed_link, game_type, season, game_date, official_date, away_team, away_team_id,away_team_total_wins, away_team_total_losses, away_team_series_number, home_team, home_team_id, home_team_total_wins, home_team_total_losses, home_team_series_number, number_of_games_in_series, series_game_number, venue_name, venue_id, home_probable_pitcher, away_probable_pitcher) "
+    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
     "ON CONFLICT (id) DO NOTHING"
 )
 
@@ -62,8 +62,8 @@ schedule = statsapi.get(
     "schedule",
     {
         "sportId": 1,
-        "startDate": f"{previous_day_string}",
-        "endDate": f"{previous_day_string}",
+        # "startDate": f"{previous_day_string}",
+        # "endDate": f"{previous_day_string}",
         "startDate": f"03/01/{year}",
         "endDate": f"10/10/{year}",
     },
