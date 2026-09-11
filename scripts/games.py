@@ -8,6 +8,7 @@ import os
 from datetime import datetime, timedelta
 import sys
 from db import get_connection, dual_write
+import requests
 
 load_dotenv()
 
@@ -24,8 +25,8 @@ add_games_to_db = (
 
 add_games_to_scheduled = (
     "INSERT INTO scheduled_games "
-    "(id, game_guid, feed_link, game_type, season, game_date, official_date, away_team, away_team_id,away_team_total_wins, away_team_total_losses, away_team_series_number, home_team, home_team_id, home_team_total_wins, home_team_total_losses, home_team_series_number, number_of_games_in_series, series_game_number, venue_name, venue_id, home_probable_pitcher, away_probable_pitcher) "
-    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+    "(id, game_guid, feed_link, game_type, season, game_date, official_date, away_team, away_team_id,away_team_total_wins, away_team_total_losses, away_team_series_number, home_team, home_team_id, home_team_total_wins, home_team_total_losses, home_team_series_number, number_of_games_in_series, series_game_number, venue_name, venue_id, home_probable_pitcher_id, home_probable_pitcher, away_probable_pitcher_id, away_probable_pitcher) "
+    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
     "ON CONFLICT (id) DO NOTHING"
 )
 
@@ -135,16 +136,36 @@ for date in schedule_dates:
                 total_games.append(game_insert)
         elif game["status"]["detailedState"] == "Scheduled":
             # print("scheduled games: ", json.dumps(game, indent=4))
-            scheduled_data = statsapi.schedule(game_id=game["gamePk"])
-            # print("probables: ", json.dumps(scheduled_data, indent=4))
+            # scheduled_data = statsapi.schedule(game_id=game["gamePk"])
+            # home_probable_pitcher = (
+            #     scheduled_data[0]["home_probable_pitcher"]
+            #     if (scheduled_data[0]["home_probable_pitcher"] != "")
+            #     else None
+            # )
+            # away_probable_pitcher = (
+            #     scheduled_data[0]["away_probable_pitcher"]
+            #     if (scheduled_data[0]["away_probable_pitcher"] != "")
+            #     else None
+            # )
+            gameLink = game["link"]
+            response = requests.get(f"https://statsapi.mlb.com{gameLink}")
+            response.raise_for_status()
+            game_link_res = response.json()
+            probablePitchers = game_link_res["gameData"]["probablePitchers"]
+            home_probable_pitcher_id = (
+                probablePitchers["home"]["id"] if ("home" in probablePitchers) else None
+            )
             home_probable_pitcher = (
-                scheduled_data[0]["home_probable_pitcher"]
-                if (scheduled_data[0]["home_probable_pitcher"] != "")
+                probablePitchers["home"]["fullName"]
+                if ("home" in probablePitchers)
                 else None
             )
+            away_probable_pitcher_id = (
+                probablePitchers["away"]["id"] if ("away" in probablePitchers) else None
+            )
             away_probable_pitcher = (
-                scheduled_data[0]["away_probable_pitcher"]
-                if (scheduled_data[0]["away_probable_pitcher"] != "")
+                probablePitchers["away"]["fullName"]
+                if ("away" in probablePitchers)
                 else None
             )
             game_date = datetime.strptime(game["gameDate"], "%Y-%m-%dT%H:%M:%SZ")
@@ -171,7 +192,9 @@ for date in schedule_dates:
                 game["seriesGameNumber"],
                 game["venue"]["name"],
                 game["venue"]["id"],
+                home_probable_pitcher_id,
                 home_probable_pitcher,
+                away_probable_pitcher_id,
                 away_probable_pitcher,
             )
 
