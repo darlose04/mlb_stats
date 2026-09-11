@@ -135,6 +135,18 @@ for date in schedule_dates:
                 total_games.append(game_insert)
         elif game["status"]["detailedState"] == "Scheduled":
             # print("scheduled games: ", json.dumps(game, indent=4))
+            scheduled_data = statsapi.schedule(game_id=game["gamePk"])
+            # print("probables: ", json.dumps(scheduled_data, indent=4))
+            home_probable_pitcher = (
+                scheduled_data[0]["home_probable_pitcher"]
+                if (scheduled_data[0]["home_probable_pitcher"] != "")
+                else None
+            )
+            away_probable_pitcher = (
+                scheduled_data[0]["away_probable_pitcher"]
+                if (scheduled_data[0]["away_probable_pitcher"] != "")
+                else None
+            )
             game_date = datetime.strptime(game["gameDate"], "%Y-%m-%dT%H:%M:%SZ")
             official_date = datetime.strptime(game["officialDate"], "%Y-%m-%d")
             schedule_insert = (
@@ -159,6 +171,8 @@ for date in schedule_dates:
                 game["seriesGameNumber"],
                 game["venue"]["name"],
                 game["venue"]["id"],
+                home_probable_pitcher,
+                away_probable_pitcher,
             )
 
             scheduled_games.append(schedule_insert)
