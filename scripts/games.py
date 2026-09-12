@@ -33,11 +33,9 @@ add_games_to_scheduled = (
 # probably just going to grab the entire year
 # then filter the results for regular season games
 
-# years = [2026]
-year = 2026
-# while year < 2010:
-#     years.append(year)
-#     year += 1
+# Seasons to (re)scan. Existing game ids are skipped, so a full backfill run
+# is safe; narrow this back to the current season for the nightly update.
+years = range(2026, 2027)
 
 # checking number of games that don't get added
 games_not_added = 0
@@ -58,56 +56,128 @@ previous_day = current_date - timedelta(days=1)
 previous_day_string = previous_day.strftime("%m/%d/%Y")
 print("Previous Day: ", previous_day_string)
 
-# for year in years:
-schedule = statsapi.get(
-    "schedule",
-    {
-        "sportId": 1,
-        # "startDate": f"{previous_day_string}",
-        # "endDate": f"{previous_day_string}",
-        "startDate": f"03/01/{year}",
-        "endDate": f"10/10/{year}",
-    },
-)
-
-# print("Schedule: ", json.dumps(schedule, indent=4))
-# print("Schedule Keys", schedule.keys())
-# print("Total Games", schedule["totalGames"])
-
-schedule_dates = schedule["dates"]
-# print(json.dumps(schedule_dates, indent=4))
-
 total_games = []
 scheduled_games = []
 
-for date in schedule_dates:
-    games = date["games"]
+for year in years:
+    schedule = statsapi.get(
+        "schedule",
+        {
+            "sportId": 1,
+            # "startDate": f"{previous_day_string}",
+            # "endDate": f"{previous_day_string}",
+            "startDate": f"03/01/{year}",
+            "endDate": f"10/10/{year}",
+        },
+    )
 
-    filtered_games = list(filter(lambda game: game["gameType"] == "R", games))
+    # print("Schedule: ", json.dumps(schedule, indent=4))
+    # print("Schedule Keys", schedule.keys())
+    # print("Total Games", schedule["totalGames"])
 
-    # print(filtered_games)
-    check_duplicate = 0
-    for game in filtered_games:
-        if game["status"]["detailedState"] == "Final":
+    schedule_dates = schedule["dates"]
+    # print(json.dumps(schedule_dates, indent=4))
 
-            # print("================")
-            # print(json.dumps(game, indent=4))
-            # print("================")
-            if game["gamePk"] in existing_game_ids:
-                games_already_exist += 1
-                continue
-            elif "resumeDate" in game:
-                print("resume date in game, continuing")
-                continue
-            elif "score" not in game["teams"]["away"]:
-                games_not_added += 1
-                print(json.dumps(game, indent=4))
-                continue
-            else:
+    for date in schedule_dates:
+        games = date["games"]
+
+        filtered_games = list(filter(lambda game: game["gameType"] == "R", games))
+
+        # print(filtered_games)
+        check_duplicate = 0
+        for game in filtered_games:
+            # codedGameState "F" is every finished game, including rain-shortened
+            # ones whose detailedState is "Completed Early" (postponed = "D",
+            # cancelled = "C"). Matching detailedState == "Final" skipped those.
+            if game["status"]["codedGameState"] == "F":
+
+                # print("================")
+                # print(json.dumps(game, indent=4))
+                # print("================")
+                if game["gamePk"] in existing_game_ids:
+                    games_already_exist += 1
+                    continue
+                elif "resumeDate" in game:
+                    print("resume date in game, continuing")
+                    continue
+                elif "score" not in game["teams"]["away"]:
+                    games_not_added += 1
+                    print(json.dumps(game, indent=4))
+                    continue
+                else:
+                    game_date = datetime.strptime(
+                        game["gameDate"], "%Y-%m-%dT%H:%M:%SZ"
+                    )
+                    official_date = datetime.strptime(game["officialDate"], "%Y-%m-%d")
+
+                    game_insert = (
+                        game["gamePk"],
+                        game["gameGuid"],
+                        game["link"],
+                        game["gameType"],
+                        game["season"],
+                        game_date,
+                        official_date,
+                        game["teams"]["away"]["team"]["name"],
+                        game["teams"]["away"]["team"]["id"],
+                        game["teams"]["away"]["score"],
+                        game["teams"]["away"]["leagueRecord"]["wins"],
+                        game["teams"]["away"]["leagueRecord"]["losses"],
+                        game["teams"]["away"]["seriesNumber"],
+                        game["teams"]["home"]["team"]["name"],
+                        game["teams"]["home"]["team"]["id"],
+                        game["teams"]["home"]["score"],
+                        game["teams"]["home"]["leagueRecord"]["wins"],
+                        game["teams"]["home"]["leagueRecord"]["losses"],
+                        game["teams"]["home"]["seriesNumber"],
+                        game["gamesInSeries"],
+                        game["seriesGameNumber"],
+                        game["venue"]["name"],
+                        game["venue"]["id"],
+                    )
+
+                    total_games.append(game_insert)
+            elif game["status"]["detailedState"] == "Scheduled":
+                # print("scheduled games: ", json.dumps(game, indent=4))
+                # scheduled_data = statsapi.schedule(game_id=game["gamePk"])
+                # home_probable_pitcher = (
+                #     scheduled_data[0]["home_probable_pitcher"]
+                #     if (scheduled_data[0]["home_probable_pitcher"] != "")
+                #     else None
+                # )
+                # away_probable_pitcher = (
+                #     scheduled_data[0]["away_probable_pitcher"]
+                #     if (scheduled_data[0]["away_probable_pitcher"] != "")
+                #     else None
+                # )
+                gameLink = game["link"]
+                response = requests.get(f"https://statsapi.mlb.com{gameLink}")
+                response.raise_for_status()
+                game_link_res = response.json()
+                probablePitchers = game_link_res["gameData"]["probablePitchers"]
+                home_probable_pitcher_id = (
+                    probablePitchers["home"]["id"]
+                    if ("home" in probablePitchers)
+                    else None
+                )
+                home_probable_pitcher = (
+                    probablePitchers["home"]["fullName"]
+                    if ("home" in probablePitchers)
+                    else None
+                )
+                away_probable_pitcher_id = (
+                    probablePitchers["away"]["id"]
+                    if ("away" in probablePitchers)
+                    else None
+                )
+                away_probable_pitcher = (
+                    probablePitchers["away"]["fullName"]
+                    if ("away" in probablePitchers)
+                    else None
+                )
                 game_date = datetime.strptime(game["gameDate"], "%Y-%m-%dT%H:%M:%SZ")
                 official_date = datetime.strptime(game["officialDate"], "%Y-%m-%d")
-
-                game_insert = (
+                schedule_insert = (
                     game["gamePk"],
                     game["gameGuid"],
                     game["link"],
@@ -117,13 +187,11 @@ for date in schedule_dates:
                     official_date,
                     game["teams"]["away"]["team"]["name"],
                     game["teams"]["away"]["team"]["id"],
-                    game["teams"]["away"]["score"],
                     game["teams"]["away"]["leagueRecord"]["wins"],
                     game["teams"]["away"]["leagueRecord"]["losses"],
                     game["teams"]["away"]["seriesNumber"],
                     game["teams"]["home"]["team"]["name"],
                     game["teams"]["home"]["team"]["id"],
-                    game["teams"]["home"]["score"],
                     game["teams"]["home"]["leagueRecord"]["wins"],
                     game["teams"]["home"]["leagueRecord"]["losses"],
                     game["teams"]["home"]["seriesNumber"],
@@ -131,74 +199,13 @@ for date in schedule_dates:
                     game["seriesGameNumber"],
                     game["venue"]["name"],
                     game["venue"]["id"],
+                    home_probable_pitcher_id,
+                    home_probable_pitcher,
+                    away_probable_pitcher_id,
+                    away_probable_pitcher,
                 )
 
-                total_games.append(game_insert)
-        elif game["status"]["detailedState"] == "Scheduled":
-            # print("scheduled games: ", json.dumps(game, indent=4))
-            # scheduled_data = statsapi.schedule(game_id=game["gamePk"])
-            # home_probable_pitcher = (
-            #     scheduled_data[0]["home_probable_pitcher"]
-            #     if (scheduled_data[0]["home_probable_pitcher"] != "")
-            #     else None
-            # )
-            # away_probable_pitcher = (
-            #     scheduled_data[0]["away_probable_pitcher"]
-            #     if (scheduled_data[0]["away_probable_pitcher"] != "")
-            #     else None
-            # )
-            gameLink = game["link"]
-            response = requests.get(f"https://statsapi.mlb.com{gameLink}")
-            response.raise_for_status()
-            game_link_res = response.json()
-            probablePitchers = game_link_res["gameData"]["probablePitchers"]
-            home_probable_pitcher_id = (
-                probablePitchers["home"]["id"] if ("home" in probablePitchers) else None
-            )
-            home_probable_pitcher = (
-                probablePitchers["home"]["fullName"]
-                if ("home" in probablePitchers)
-                else None
-            )
-            away_probable_pitcher_id = (
-                probablePitchers["away"]["id"] if ("away" in probablePitchers) else None
-            )
-            away_probable_pitcher = (
-                probablePitchers["away"]["fullName"]
-                if ("away" in probablePitchers)
-                else None
-            )
-            game_date = datetime.strptime(game["gameDate"], "%Y-%m-%dT%H:%M:%SZ")
-            official_date = datetime.strptime(game["officialDate"], "%Y-%m-%d")
-            schedule_insert = (
-                game["gamePk"],
-                game["gameGuid"],
-                game["link"],
-                game["gameType"],
-                game["season"],
-                game_date,
-                official_date,
-                game["teams"]["away"]["team"]["name"],
-                game["teams"]["away"]["team"]["id"],
-                game["teams"]["away"]["leagueRecord"]["wins"],
-                game["teams"]["away"]["leagueRecord"]["losses"],
-                game["teams"]["away"]["seriesNumber"],
-                game["teams"]["home"]["team"]["name"],
-                game["teams"]["home"]["team"]["id"],
-                game["teams"]["home"]["leagueRecord"]["wins"],
-                game["teams"]["home"]["leagueRecord"]["losses"],
-                game["teams"]["home"]["seriesNumber"],
-                game["gamesInSeries"],
-                game["seriesGameNumber"],
-                game["venue"]["name"],
-                game["venue"]["id"],
-                home_probable_pitcher_id,
-                home_probable_pitcher,
-                away_probable_pitcher_id,
-                away_probable_pitcher,
-            )
-
-            scheduled_games.append(schedule_insert)
+                scheduled_games.append(schedule_insert)
 
 if total_games:
     try:
