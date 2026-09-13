@@ -82,6 +82,7 @@ for year in years:
         games = date["games"]
 
         filtered_games = list(filter(lambda game: game["gameType"] == "R", games))
+        # TODO: may want to add playoff stats here as well
 
         # print(filtered_games)
         check_duplicate = 0
