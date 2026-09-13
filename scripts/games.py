@@ -139,17 +139,6 @@ for year in years:
                     total_games.append(game_insert)
             elif game["status"]["detailedState"] == "Scheduled":
                 # print("scheduled games: ", json.dumps(game, indent=4))
-                # scheduled_data = statsapi.schedule(game_id=game["gamePk"])
-                # home_probable_pitcher = (
-                #     scheduled_data[0]["home_probable_pitcher"]
-                #     if (scheduled_data[0]["home_probable_pitcher"] != "")
-                #     else None
-                # )
-                # away_probable_pitcher = (
-                #     scheduled_data[0]["away_probable_pitcher"]
-                #     if (scheduled_data[0]["away_probable_pitcher"] != "")
-                #     else None
-                # )
                 gameLink = game["link"]
                 response = requests.get(f"https://statsapi.mlb.com{gameLink}")
                 response.raise_for_status()
