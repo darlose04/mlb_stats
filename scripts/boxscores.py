@@ -73,7 +73,7 @@ def fetch_and_transform(game_id, max_retries=3):
                 raise
 
 
-for season in range(2026, 2027):
+for season in range(1994, 2027):
     game_ids = get_ids(cursor, season)
     difference = list(set(game_ids) - set(exist_ids))
 
