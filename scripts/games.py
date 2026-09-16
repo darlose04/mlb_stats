@@ -111,7 +111,7 @@ for year in years:
                     continue
                 elif "score" not in game["teams"]["away"]:
                     games_not_added += 1
-                    print(json.dumps(game, indent=4))
+                    # print(json.dumps(game, indent=4))
                     continue
                 else:
                     game_date = datetime.strptime(
