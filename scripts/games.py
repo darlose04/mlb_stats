@@ -35,7 +35,7 @@ add_games_to_scheduled = (
 
 # Seasons to (re)scan. Existing game ids are skipped, so a full backfill run
 # is safe; narrow this back to the current season for the nightly update.
-years = range(2026, 2027)
+years = range(1994, 2027)
 
 # checking number of games that don't get added
 games_not_added = 0
@@ -67,7 +67,7 @@ for year in years:
             # "startDate": f"{previous_day_string}",
             # "endDate": f"{previous_day_string}",
             "startDate": f"03/01/{year}",
-            "endDate": f"10/10/{year}",
+            "endDate": f"11/30/{year}",
         },
     )
 
@@ -81,15 +81,18 @@ for year in years:
     for date in schedule_dates:
         games = date["games"]
 
-        filtered_games = list(filter(lambda game: game["gameType"] == "R", games))
-        # TODO: may want to add playoff stats here as well
+        # print(json.dumps(games, indent=4))
         # playoff gameTypes
         # "F" - Wild Card
         # "D" - divisional series
         # "L" - "league series"
         # "W" - World Series
+        filter_targets = {"R", "F", "D", "L", "W"}
+        filtered_games = list(
+            filter(lambda game: game["gameType"] in filter_targets, games)
+        )
 
-        # print(filtered_games)
+        # print("filtered games", json.dumps(filtered_games, indent=4))
         check_duplicate = 0
         for game in filtered_games:
             # codedGameState "F" is every finished game, including rain-shortened
