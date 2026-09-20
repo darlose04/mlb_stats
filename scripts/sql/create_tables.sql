@@ -415,3 +415,29 @@ CREATE TABLE IF NOT EXISTS fantasy.team_boxscores_away_pitching_and_fielding (LI
 CREATE TABLE IF NOT EXISTS fantasy.player_batting (LIKE public.player_batting INCLUDING ALL);
 CREATE TABLE IF NOT EXISTS fantasy.player_pitching (LIKE public.player_pitching INCLUDING ALL);
 CREATE TABLE IF NOT EXISTS fantasy.player_fielding (LIKE public.player_fielding INCLUDING ALL);
+
+-- venues (populated by scripts/venues.py from the MLB Stats API; the script
+-- also creates this table if missing, in both schemas)
+CREATE TABLE IF NOT EXISTS public.venues (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL,
+    city TEXT,
+    state TEXT,
+    state_abbrev TEXT,
+    country TEXT,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    elevation INTEGER,
+    azimuth DOUBLE PRECISION,
+    timezone TEXT,
+    capacity INTEGER,
+    turf_type TEXT,
+    roof_type TEXT,
+    left_line INTEGER,
+    left_center INTEGER,
+    center INTEGER,
+    right_center INTEGER,
+    right_line INTEGER,
+    active BOOLEAN,
+    updated_at TIMESTAMP NOT NULL DEFAULT now()
+);
